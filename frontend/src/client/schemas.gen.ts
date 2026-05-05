@@ -288,6 +288,12 @@ export const UpdatePasswordSchema = {
     title: 'UpdatePassword'
 } as const;
 
+export const UserRoleSchema = {
+    type: 'string',
+    enum: ['admin', 'manager', 'member'],
+    title: 'UserRole'
+} as const;
+
 export const UserCreateSchema = {
     properties: {
         email: {
@@ -301,10 +307,9 @@ export const UserCreateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [
@@ -343,10 +348,9 @@ export const UserPublicSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [
@@ -435,10 +439,9 @@ export const UserUpdateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [

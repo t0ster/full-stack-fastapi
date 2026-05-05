@@ -62,10 +62,12 @@ export type UpdatePassword = {
     new_password: string;
 };
 
+export type UserRole = 'admin' | 'manager' | 'member';
+
 export type UserCreate = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
+    role?: UserRole;
     full_name?: (string | null);
     password: string;
 };
@@ -73,7 +75,7 @@ export type UserCreate = {
 export type UserPublic = {
     email: string;
     is_active?: boolean;
-    is_superuser?: boolean;
+    role?: UserRole;
     full_name?: (string | null);
     id: string;
     created_at?: (string | null);
@@ -93,7 +95,7 @@ export type UsersPublic = {
 export type UserUpdate = {
     email?: (string | null);
     is_active?: boolean;
-    is_superuser?: boolean;
+    role?: UserRole;
     full_name?: (string | null);
     password?: (string | null);
 };
