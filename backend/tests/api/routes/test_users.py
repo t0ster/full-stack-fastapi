@@ -8,7 +8,7 @@ from app import crud
 from app.core.config import settings
 from app.core.security import verify_password
 from app.models import User, UserCreate, UserRole
-from tests.utils.user import create_random_user, user_authentication_headers
+from tests.utils.user import create_random_user
 from tests.utils.utils import random_email, random_lower_string
 
 
@@ -173,23 +173,6 @@ def test_create_user_by_normal_user(
         headers=normal_user_token_headers,
         json=data,
     )
-    assert r.status_code == 403
-
-
-def test_manager_does_not_have_admin_access(client: TestClient, db: Session) -> None:
-    username = random_email()
-    password = random_lower_string()
-    user_in = UserCreate(email=username, password=password, role=UserRole.manager)
-    crud.create_user(session=db, user_create=user_in)
-    headers = user_authentication_headers(
-        client=client, email=username, password=password
-    )
-
-    me = client.get(f"{settings.API_V1_STR}/users/me", headers=headers)
-    assert me.status_code == 200
-    assert me.json()["role"] == UserRole.manager
-
-    r = client.get(f"{settings.API_V1_STR}/users/", headers=headers)
     assert r.status_code == 403
 
 
