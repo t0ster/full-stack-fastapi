@@ -288,12 +288,6 @@ export const UpdatePasswordSchema = {
     title: 'UpdatePassword'
 } as const;
 
-export const UserRoleSchema = {
-    type: 'string',
-    enum: ['admin', 'manager', 'member'],
-    title: 'UserRole'
-} as const;
-
 export const UserCreateSchema = {
     properties: {
         email: {
@@ -417,6 +411,12 @@ export const UserRegisterSchema = {
     type: 'object',
     required: ['email', 'password'],
     title: 'UserRegister'
+} as const;
+
+export const UserRoleSchema = {
+    type: 'string',
+    enum: ['admin', 'manager', 'member'],
+    title: 'UserRole'
 } as const;
 
 export const UserUpdateSchema = {

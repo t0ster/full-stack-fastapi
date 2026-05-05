@@ -62,8 +62,6 @@ export type UpdatePassword = {
     new_password: string;
 };
 
-export type UserRole = 'admin' | 'manager' | 'member';
-
 export type UserCreate = {
     email: string;
     is_active?: boolean;
@@ -86,6 +84,8 @@ export type UserRegister = {
     password: string;
     full_name?: (string | null);
 };
+
+export type UserRole = 'admin' | 'manager' | 'member';
 
 export type UsersPublic = {
     data: Array<UserPublic>;
