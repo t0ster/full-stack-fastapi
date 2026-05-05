@@ -9,7 +9,7 @@ export type UserTableData = UserPublic & {
   isCurrentUser: boolean
 }
 
-export const columns: ColumnDef<UserTableData>[] = [
+const userColumns: ColumnDef<UserTableData>[] = [
   {
     accessorKey: "full_name",
     header: "Full Name",
@@ -67,13 +67,20 @@ export const columns: ColumnDef<UserTableData>[] = [
       </div>
     ),
   },
-  {
-    id: "actions",
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => (
-      <div className="flex justify-end">
-        <UserActionsMenu user={row.original} />
-      </div>
-    ),
-  },
 ]
+
+const actionsColumn: ColumnDef<UserTableData> = {
+  id: "actions",
+  header: () => <span className="sr-only">Actions</span>,
+  cell: ({ row }) => (
+    <div className="flex justify-end">
+      <UserActionsMenu user={row.original} />
+    </div>
+  ),
+}
+
+export function getColumns(
+  canManageUsers: boolean,
+): ColumnDef<UserTableData>[] {
+  return canManageUsers ? [...userColumns, actionsColumn] : userColumns
+}

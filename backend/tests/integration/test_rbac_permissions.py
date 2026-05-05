@@ -74,6 +74,12 @@ def test_read_other_user_role_permissions(client: TestClient, db: Session) -> No
 
 
 def test_metrics_role_permissions(client: TestClient, db: Session) -> None:
+    inactive_user = UserCreate(
+        email=random_email(),
+        password=random_lower_string(),
+        is_active=False,
+    )
+    crud.create_user(session=db, user_create=inactive_user)
     expected_status_by_role = {
         UserRole.admin: 200,
         UserRole.manager: 200,
@@ -86,8 +92,6 @@ def test_metrics_role_permissions(client: TestClient, db: Session) -> None:
         response = client.get(f"{settings.API_V1_STR}/metrics/", headers=headers)
 
         assert response.status_code == expected_status
-        if expected_status == 200:
-            assert response.json() == {"active_users": 0, "total_users": 0}
 
 
 def test_only_admin_can_manage_users(client: TestClient, db: Session) -> None:

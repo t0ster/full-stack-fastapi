@@ -208,6 +208,22 @@ export const MessageSchema = {
     title: 'Message'
 } as const;
 
+export const MetricsPublicSchema = {
+    properties: {
+        active_users: {
+            type: 'integer',
+            title: 'Active Users'
+        },
+        total_users: {
+            type: 'integer',
+            title: 'Total Users'
+        }
+    },
+    type: 'object',
+    required: ['active_users', 'total_users'],
+    title: 'MetricsPublic'
+} as const;
+
 export const NewPasswordSchema = {
     properties: {
         token: {

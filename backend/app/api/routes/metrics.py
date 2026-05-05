@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
+from sqlmodel import func, select
 
-from app.api.deps import require_roles
-from app.models import UserRole
+from app.api.deps import SessionDep, require_roles
+from app.models import MetricsPublic, User, UserRole
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -9,6 +10,11 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 @router.get(
     "/",
     dependencies=[Depends(require_roles(UserRole.admin, UserRole.manager))],
+    response_model=MetricsPublic,
 )
-def read_metrics() -> dict[str, int]:
-    return {"active_users": 0, "total_users": 0}
+def read_metrics(session: SessionDep) -> MetricsPublic:
+    total_users = session.exec(select(func.count()).select_from(User)).one()
+    active_users = session.exec(
+        select(func.count()).select_from(User).where(User.is_active)
+    ).one()
+    return MetricsPublic(active_users=active_users, total_users=total_users)
