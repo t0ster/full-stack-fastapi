@@ -14,5 +14,5 @@ jobs:
     steps:
       - uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
-          project-url: https://github.com/orgs/fastapi/projects/2
+          project-url: https://github.com/users/t0ster/projects/3
           github-token: ${{ secrets.PROJECTS_TOKEN }}
