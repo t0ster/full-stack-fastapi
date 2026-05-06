@@ -19,6 +19,10 @@ jobs:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
       FIRST_ADMIN_EMAIL: ${{ secrets.FIRST_ADMIN_EMAIL }}
       FIRST_ADMIN_PASSWORD: ${{ secrets.FIRST_ADMIN_PASSWORD }}
+      FIRST_MANAGER_EMAIL: ${{ secrets.FIRST_MANAGER_EMAIL }}
+      FIRST_MANAGER_PASSWORD: ${{ secrets.FIRST_MANAGER_PASSWORD }}
+      FIRST_MEMBER_EMAIL: ${{ secrets.FIRST_MEMBER_EMAIL }}
+      FIRST_MEMBER_PASSWORD: ${{ secrets.FIRST_MEMBER_PASSWORD }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_USER: ${{ secrets.SMTP_USER }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}

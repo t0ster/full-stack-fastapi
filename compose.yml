@@ -65,6 +65,10 @@ services:
       - SECRET_KEY=${SECRET_KEY?Variable not set}
       - FIRST_ADMIN_EMAIL=${FIRST_ADMIN_EMAIL?Variable not set}
       - FIRST_ADMIN_PASSWORD=${FIRST_ADMIN_PASSWORD?Variable not set}
+      - FIRST_MANAGER_EMAIL=${FIRST_MANAGER_EMAIL?Variable not set}
+      - FIRST_MANAGER_PASSWORD=${FIRST_MANAGER_PASSWORD?Variable not set}
+      - FIRST_MEMBER_EMAIL=${FIRST_MEMBER_EMAIL?Variable not set}
+      - FIRST_MEMBER_PASSWORD=${FIRST_MEMBER_PASSWORD?Variable not set}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
@@ -98,6 +102,10 @@ services:
       - SECRET_KEY=${SECRET_KEY?Variable not set}
       - FIRST_ADMIN_EMAIL=${FIRST_ADMIN_EMAIL?Variable not set}
       - FIRST_ADMIN_PASSWORD=${FIRST_ADMIN_PASSWORD?Variable not set}
+      - FIRST_MANAGER_EMAIL=${FIRST_MANAGER_EMAIL?Variable not set}
+      - FIRST_MANAGER_PASSWORD=${FIRST_MANAGER_PASSWORD?Variable not set}
+      - FIRST_MEMBER_EMAIL=${FIRST_MEMBER_EMAIL?Variable not set}
+      - FIRST_MEMBER_PASSWORD=${FIRST_MEMBER_PASSWORD?Variable not set}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}

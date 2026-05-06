@@ -1,5 +1,9 @@
 # Full-Stack FastAPI RBAC
 
+[![Test Backend](https://github.com/t0ster/full-stack-fastapi/actions/workflows/test-backend.yml/badge.svg)](https://github.com/t0ster/full-stack-fastapi/actions/workflows/test-backend.yml)
+[![Playwright Tests](https://github.com/t0ster/full-stack-fastapi/actions/workflows/playwright.yml/badge.svg)](https://github.com/t0ster/full-stack-fastapi/actions/workflows/playwright.yml)
+[![Test Docker Compose](https://github.com/t0ster/full-stack-fastapi/actions/workflows/test-docker-compose.yml/badge.svg)](https://github.com/t0ster/full-stack-fastapi/actions/workflows/test-docker-compose.yml)
+
 ## Run locally with Docker Compose
 
 Prereq:
