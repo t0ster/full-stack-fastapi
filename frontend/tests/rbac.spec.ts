@@ -68,13 +68,31 @@ test.describe("RBAC navigation and route guards", () => {
     await expect(page.getByRole("link", { name: "Metrics" })).not.toBeVisible()
 
     await page.goto("/admin")
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL("/admin")
+    await expect(page.getByTestId("forbidden")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Access Denied" }),
+    ).toBeVisible()
     await expect(page.getByRole("heading", { name: "Users" })).not.toBeVisible()
 
     await page.goto("/metrics")
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL("/metrics")
+    await expect(page.getByTestId("forbidden")).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Access Denied" }),
+    ).toBeVisible()
     await expect(
       page.getByRole("heading", { name: "Metrics" }),
     ).not.toBeVisible()
+  })
+
+  test("logged-out users are redirected to login for protected routes", async ({
+    page,
+  }) => {
+    await page.goto("/admin")
+    await expect(page).toHaveURL("/login")
+
+    await page.goto("/metrics")
+    await expect(page).toHaveURL("/login")
   })
 })

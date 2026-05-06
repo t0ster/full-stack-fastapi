@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { Activity, type LucideIcon, Users } from "lucide-react"
 import { Suspense } from "react"
 
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ForbiddenError } from "@/lib/errors"
 import { hasPermission } from "@/lib/permissions"
 
 function getMetricsQueryOptions() {
@@ -26,9 +27,7 @@ export const Route = createFileRoute("/_layout/metrics")({
   beforeLoad: async () => {
     const user = await UsersService.readUserMe()
     if (!hasPermission(user.permissions, "metrics:read")) {
-      throw redirect({
-        to: "/",
-      })
+      throw new ForbiddenError()
     }
   },
   head: () => ({
