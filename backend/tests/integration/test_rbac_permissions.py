@@ -5,7 +5,8 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
-from app.models import User, UserCreate, UserRole
+from app.core.rbac import UserRole
+from app.models import User, UserCreate
 from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 
