@@ -1,21 +1,16 @@
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 
 from pydantic import EmailStr
 from sqlalchemy import Column, DateTime
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.core.rbac import Permission, UserRole, permissions_for_role
+
 
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
-
-
-class UserRole(str, Enum):
-    admin = "admin"
-    manager = "manager"
-    member = "member"
 
 
 # Shared properties
@@ -76,11 +71,16 @@ class User(UserBase, table=True):
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
+    @property
+    def permissions(self) -> list[Permission]:
+        return permissions_for_role(self.role)
+
 
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
+    permissions: list[Permission]
 
 
 class UsersPublic(SQLModel):

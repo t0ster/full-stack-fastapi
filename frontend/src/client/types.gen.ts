@@ -50,6 +50,8 @@ export type NewPassword = {
     new_password: string;
 };
 
+export type Permission = 'users:read' | 'users:manage' | 'metrics:read' | 'password-recovery:preview' | 'test-email:send' | 'items:read:all' | 'items:manage:all';
+
 export type PrivateUserCreate = {
     email: string;
     password: string;
@@ -82,6 +84,7 @@ export type UserPublic = {
     full_name?: (string | null);
     id: string;
     created_at?: (string | null);
+    permissions: Array<Permission>;
 };
 
 export type UserRegister = {

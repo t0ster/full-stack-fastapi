@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { hasPermission } from "@/lib/permissions"
 
 function getMetricsQueryOptions() {
   return {
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_layout/metrics")({
   component: Metrics,
   beforeLoad: async () => {
     const user = await UsersService.readUserMe()
-    if (user.role !== "admin" && user.role !== "manager") {
+    if (!hasPermission(user.permissions, "metrics:read")) {
       throw redirect({
         to: "/",
       })

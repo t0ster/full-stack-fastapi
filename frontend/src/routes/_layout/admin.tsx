@@ -8,6 +8,7 @@ import { getColumns, type UserTableData } from "@/components/Admin/columns"
 import { DataTable } from "@/components/Common/DataTable"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import useAuth from "@/hooks/useAuth"
+import { hasPermission } from "@/lib/permissions"
 
 function getUsersQueryOptions() {
   return {
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/_layout/admin")({
   component: Admin,
   beforeLoad: async () => {
     const user = await UsersService.readUserMe()
-    if (user.role !== "admin" && user.role !== "manager") {
+    if (!hasPermission(user.permissions, "users:read")) {
       throw redirect({
         to: "/",
       })
@@ -39,7 +40,7 @@ function UsersTableContent() {
   const { user: currentUser } = useAuth()
   const { data: users } = useSuspenseQuery(getUsersQueryOptions())
 
-  const canManageUsers = currentUser?.role === "admin"
+  const canManageUsers = hasPermission(currentUser?.permissions, "users:manage")
   const tableData: UserTableData[] = users.data.map((user: UserPublic) => ({
     ...user,
     isCurrentUser: currentUser?.id === user.id,
@@ -58,7 +59,7 @@ function UsersTable() {
 
 function Admin() {
   const { user: currentUser } = useAuth()
-  const canManageUsers = currentUser?.role === "admin"
+  const canManageUsers = hasPermission(currentUser?.permissions, "users:manage")
 
   if (!currentUser) {
     return <PendingUsers />

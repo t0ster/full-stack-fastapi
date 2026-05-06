@@ -242,6 +242,12 @@ export const NewPasswordSchema = {
     title: 'NewPassword'
 } as const;
 
+export const PermissionSchema = {
+    type: 'string',
+    enum: ['users:read', 'users:manage', 'metrics:read', 'password-recovery:preview', 'test-email:send', 'items:read:all', 'items:manage:all'],
+    title: 'Permission'
+} as const;
+
 export const PrivateUserCreateSchema = {
     properties: {
         email: {
@@ -390,10 +396,17 @@ export const UserPublicSchema = {
                 }
             ],
             title: 'Created At'
+        },
+        permissions: {
+            items: {
+                '$ref': '#/components/schemas/Permission'
+            },
+            type: 'array',
+            title: 'Permissions'
         }
     },
     type: 'object',
-    required: ['email', 'id'],
+    required: ['email', 'id', 'permissions'],
     title: 'UserPublic'
 } as const;
 

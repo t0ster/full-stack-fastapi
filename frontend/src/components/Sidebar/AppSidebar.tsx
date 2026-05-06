@@ -9,6 +9,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
+import { hasPermission } from "@/lib/permissions"
 import { type Item, Main } from "./Main"
 import { User } from "./User"
 
@@ -20,16 +21,16 @@ const baseItems: Item[] = [
 export function AppSidebar() {
   const { user: currentUser } = useAuth()
 
-  const canViewRestrictedPages =
-    currentUser?.role === "admin" || currentUser?.role === "manager"
-
-  const items = canViewRestrictedPages
-    ? [
-        ...baseItems,
-        { icon: Users, title: "Users", path: "/admin" },
-        { icon: BarChart3, title: "Metrics", path: "/metrics" },
-      ]
-    : baseItems
+  const permissions = currentUser?.permissions
+  const items = [
+    ...baseItems,
+    ...(hasPermission(permissions, "users:read")
+      ? [{ icon: Users, title: "Users", path: "/admin" }]
+      : []),
+    ...(hasPermission(permissions, "metrics:read")
+      ? [{ icon: BarChart3, title: "Metrics", path: "/metrics" }]
+      : []),
+  ]
 
   return (
     <Sidebar collapsible="icon">

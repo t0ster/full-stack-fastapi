@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from pydantic.networks import EmailStr
 
-from app.api.deps import require_roles
-from app.models import Message, UserRole
+from app.api.deps import require_permission
+from app.core.rbac import Permission
+from app.models import Message
 from app.utils import generate_test_email, send_email
 
 router = APIRouter(prefix="/utils", tags=["utils"])
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/utils", tags=["utils"])
 
 @router.post(
     "/test-email/",
-    dependencies=[Depends(require_roles(UserRole.admin))],
+    dependencies=[Depends(require_permission(Permission.test_email))],
     status_code=201,
 )
 def test_email(email_to: EmailStr) -> Message:

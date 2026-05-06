@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, delete, func, select
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, require_roles
+from app.api.deps import CurrentUser, SessionDep, require_permission
 from app.core.config import settings
+from app.core.rbac import Permission, UserRole
 from app.core.security import get_password_hash, verify_password
 from app.models import (
     Item,
@@ -16,7 +17,6 @@ from app.models import (
     UserCreate,
     UserPublic,
     UserRegister,
-    UserRole,
     UsersPublic,
     UserUpdate,
     UserUpdateMe,
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get(
     "/",
-    dependencies=[Depends(require_roles(UserRole.admin, UserRole.manager))],
+    dependencies=[Depends(require_permission(Permission.users_read))],
     response_model=UsersPublic,
 )
 def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
@@ -50,7 +50,7 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
 @router.post(
     "/",
-    dependencies=[Depends(require_roles(UserRole.admin))],
+    dependencies=[Depends(require_permission(Permission.users_manage))],
     response_model=UserPublic,
 )
 def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
@@ -168,7 +168,7 @@ def read_user_by_id(
     user = session.get(User, user_id)
     if user == current_user:
         return user
-    if current_user.role not in (UserRole.admin, UserRole.manager):
+    if Permission.users_read not in current_user.permissions:
         raise HTTPException(
             status_code=403,
             detail="The user doesn't have enough privileges",
@@ -180,7 +180,7 @@ def read_user_by_id(
 
 @router.patch(
     "/{user_id}",
-    dependencies=[Depends(require_roles(UserRole.admin))],
+    dependencies=[Depends(require_permission(Permission.users_manage))],
     response_model=UserPublic,
 )
 def update_user(
@@ -210,7 +210,9 @@ def update_user(
     return db_user
 
 
-@router.delete("/{user_id}", dependencies=[Depends(require_roles(UserRole.admin))])
+@router.delete(
+    "/{user_id}", dependencies=[Depends(require_permission(Permission.users_manage))]
+)
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
 ) -> Message:
