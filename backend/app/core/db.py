@@ -13,6 +13,17 @@ engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 # for more details: https://github.com/fastapi/full-stack-fastapi-template/issues/28
 
 
+def create_seed_user(
+    *, session: Session, email: str, password: str, role: UserRole
+) -> None:
+    user = session.exec(select(User).where(User.email == email)).first()
+    if user:
+        return
+
+    user_in = UserCreate(email=email, password=password, role=role)
+    crud.create_user(session=session, user_create=user_in)
+
+
 def init_db(session: Session) -> None:
     # Tables should be created with Alembic migrations
     # But if you don't want to use migrations, create
@@ -22,13 +33,21 @@ def init_db(session: Session) -> None:
     # This works because the models are already imported and registered from app.models
     # SQLModel.metadata.create_all(engine)
 
-    user = session.exec(
-        select(User).where(User.email == settings.FIRST_ADMIN_EMAIL)
-    ).first()
-    if not user:
-        user_in = UserCreate(
-            email=settings.FIRST_ADMIN_EMAIL,
-            password=settings.FIRST_ADMIN_PASSWORD,
-            role=UserRole.admin,
-        )
-        user = crud.create_user(session=session, user_create=user_in)
+    create_seed_user(
+        session=session,
+        email=settings.FIRST_ADMIN_EMAIL,
+        password=settings.FIRST_ADMIN_PASSWORD,
+        role=UserRole.admin,
+    )
+    create_seed_user(
+        session=session,
+        email=settings.FIRST_MANAGER_EMAIL,
+        password=settings.FIRST_MANAGER_PASSWORD,
+        role=UserRole.manager,
+    )
+    create_seed_user(
+        session=session,
+        email=settings.FIRST_MEMBER_EMAIL,
+        password=settings.FIRST_MEMBER_PASSWORD,
+        role=UserRole.member,
+    )
