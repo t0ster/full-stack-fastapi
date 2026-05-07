@@ -1,13 +1,15 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { Suspense } from "react"
 
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
-import { columns, type UserTableData } from "@/components/Admin/columns"
+import { getColumns, type UserTableData } from "@/components/Admin/columns"
 import { DataTable } from "@/components/Common/DataTable"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import useAuth from "@/hooks/useAuth"
+import { ForbiddenError } from "@/lib/errors"
+import { hasPermission } from "@/lib/permissions"
 
 function getUsersQueryOptions() {
   return {
@@ -20,10 +22,8 @@ export const Route = createFileRoute("/_layout/admin")({
   component: Admin,
   beforeLoad: async () => {
     const user = await UsersService.readUserMe()
-    if (!user.is_superuser) {
-      throw redirect({
-        to: "/",
-      })
+    if (!hasPermission(user.permissions, "users:read")) {
+      throw new ForbiddenError()
     }
   },
   head: () => ({
@@ -39,12 +39,13 @@ function UsersTableContent() {
   const { user: currentUser } = useAuth()
   const { data: users } = useSuspenseQuery(getUsersQueryOptions())
 
+  const canManageUsers = hasPermission(currentUser?.permissions, "users:manage")
   const tableData: UserTableData[] = users.data.map((user: UserPublic) => ({
     ...user,
     isCurrentUser: currentUser?.id === user.id,
   }))
 
-  return <DataTable columns={columns} data={tableData} />
+  return <DataTable columns={getColumns(canManageUsers)} data={tableData} />
 }
 
 function UsersTable() {
@@ -56,16 +57,25 @@ function UsersTable() {
 }
 
 function Admin() {
+  const { user: currentUser } = useAuth()
+  const canManageUsers = hasPermission(currentUser?.permissions, "users:manage")
+
+  if (!currentUser) {
+    return <PendingUsers />
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">
-            Manage user accounts and permissions
+            {canManageUsers
+              ? "Manage user accounts and permissions"
+              : "View user accounts and permissions"}
           </p>
         </div>
-        <AddUser />
+        {canManageUsers && <AddUser />}
       </div>
       <UsersTable />
     </div>

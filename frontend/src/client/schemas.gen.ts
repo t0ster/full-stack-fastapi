@@ -208,6 +208,22 @@ export const MessageSchema = {
     title: 'Message'
 } as const;
 
+export const MetricsPublicSchema = {
+    properties: {
+        active_users: {
+            type: 'integer',
+            title: 'Active Users'
+        },
+        total_users: {
+            type: 'integer',
+            title: 'Total Users'
+        }
+    },
+    type: 'object',
+    required: ['active_users', 'total_users'],
+    title: 'MetricsPublic'
+} as const;
+
 export const NewPasswordSchema = {
     properties: {
         token: {
@@ -224,6 +240,12 @@ export const NewPasswordSchema = {
     type: 'object',
     required: ['token', 'new_password'],
     title: 'NewPassword'
+} as const;
+
+export const PermissionSchema = {
+    type: 'string',
+    enum: ['users:read', 'users:manage', 'metrics:read', 'password-recovery:preview', 'test-email:send', 'items:read:all', 'items:manage:all'],
+    title: 'Permission'
 } as const;
 
 export const PrivateUserCreateSchema = {
@@ -301,10 +323,9 @@ export const UserCreateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [
@@ -343,10 +364,9 @@ export const UserPublicSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [
@@ -376,10 +396,17 @@ export const UserPublicSchema = {
                 }
             ],
             title: 'Created At'
+        },
+        permissions: {
+            items: {
+                '$ref': '#/components/schemas/Permission'
+            },
+            type: 'array',
+            title: 'Permissions'
         }
     },
     type: 'object',
-    required: ['email', 'id'],
+    required: ['email', 'id', 'permissions'],
     title: 'UserPublic'
 } as const;
 
@@ -415,6 +442,12 @@ export const UserRegisterSchema = {
     title: 'UserRegister'
 } as const;
 
+export const UserRoleSchema = {
+    type: 'string',
+    enum: ['admin', 'manager', 'member'],
+    title: 'UserRole'
+} as const;
+
 export const UserUpdateSchema = {
     properties: {
         email: {
@@ -435,10 +468,9 @@ export const UserUpdateSchema = {
             title: 'Is Active',
             default: true
         },
-        is_superuser: {
-            type: 'boolean',
-            title: 'Is Superuser',
-            default: false
+        role: {
+            '$ref': '#/components/schemas/UserRole',
+            default: 'member'
         },
         full_name: {
             anyOf: [

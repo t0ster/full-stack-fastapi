@@ -161,10 +161,11 @@ export SECRET_KEY="changethis"
 
 Note: you can use the Python command above to generate a secure secret key.
 
-Set the `FIRST_SUPER_USER_PASSWORD` to something different than `changethis`:
+Set the `FIRST_ADMIN_EMAIL` and `FIRST_ADMIN_PASSWORD`:
 
 ```bash
-export FIRST_SUPERUSER_PASSWORD="changethis"
+export FIRST_ADMIN_EMAIL="admin@example.com"
+export FIRST_ADMIN_PASSWORD="changethis"
 ```
 
 Set the `BACKEND_CORS_ORIGINS` to include your domain:
@@ -178,7 +179,7 @@ You can set several other environment variables:
 * `PROJECT_NAME`: The name of the project, used in the API for the docs and emails.
 * `STACK_NAME`: The name of the stack used for Docker Compose labels and project name, this should be different for `staging`, `production`, etc. You could use the same domain replacing dots with dashes, e.g. `fastapi-project-example-com` and `staging-fastapi-project-example-com`.
 * `BACKEND_CORS_ORIGINS`: A list of allowed CORS origins separated by commas.
-* `FIRST_SUPERUSER`: The email of the first superuser, this superuser will be the one that can create new users.
+* `FIRST_ADMIN_EMAIL`: The email of the first admin, this admin will be the one that can create new users.
 * `SMTP_HOST`: The SMTP server host to send emails, this would come from your email provider (E.g. Mailgun, Sparkpost, Sendgrid, etc).
 * `SMTP_USER`: The SMTP server user to send emails.
 * `SMTP_PASSWORD`: The SMTP server password to send emails.
@@ -299,8 +300,8 @@ The current Github Actions workflows expect these secrets:
 * `STACK_NAME_PRODUCTION`
 * `STACK_NAME_STAGING`
 * `EMAILS_FROM_EMAIL`
-* `FIRST_SUPERUSER`
-* `FIRST_SUPERUSER_PASSWORD`
+* `FIRST_ADMIN_EMAIL`
+* `FIRST_ADMIN_PASSWORD`
 * `POSTGRES_PASSWORD`
 * `SECRET_KEY`
 * `LATEST_CHANGES`

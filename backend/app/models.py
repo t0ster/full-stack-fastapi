@@ -2,8 +2,11 @@ import uuid
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
-from sqlalchemy import DateTime
+from sqlalchemy import Column, DateTime
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlmodel import Field, Relationship, SQLModel
+
+from app.core.rbac import Permission, UserRole, permissions_for_role
 
 
 def get_datetime_utc() -> datetime:
@@ -14,7 +17,7 @@ def get_datetime_utc() -> datetime:
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
-    is_superuser: bool = False
+    role: UserRole = UserRole.member
     full_name: str | None = Field(default=None, max_length=255)
 
 
@@ -48,6 +51,19 @@ class UpdatePassword(SQLModel):
 # Database model, database table inferred from class name
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    role: UserRole = Field(
+        default=UserRole.member,
+        sa_column=Column(
+            SQLAlchemyEnum(
+                UserRole,
+                values_callable=lambda roles: [role.value for role in roles],
+                native_enum=False,
+                length=20,
+            ),
+            nullable=False,
+            server_default=UserRole.member.value,
+        ),
+    )
     hashed_password: str
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
@@ -55,16 +71,26 @@ class User(UserBase, table=True):
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
+    @property
+    def permissions(self) -> list[Permission]:
+        return permissions_for_role(self.role)
+
 
 # Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
+    permissions: list[Permission]
 
 
 class UsersPublic(SQLModel):
     data: list[UserPublic]
     count: int
+
+
+class MetricsPublic(SQLModel):
+    active_users: int
+    total_users: int
 
 
 # Shared properties

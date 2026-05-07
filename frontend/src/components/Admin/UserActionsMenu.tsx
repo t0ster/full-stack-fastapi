@@ -27,7 +27,7 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button aria-label="User actions" variant="ghost" size="icon">
           <EllipsisVertical />
         </Button>
       </DropdownMenuTrigger>

@@ -1,7 +1,14 @@
-import { Link } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
+import { type ErrorComponentProps, Link } from "@tanstack/react-router"
 
-const ErrorComponent = () => {
+import { Button } from "@/components/ui/button"
+import { ForbiddenError } from "@/lib/errors"
+import Forbidden from "./Forbidden"
+
+const ErrorComponent = ({ error }: ErrorComponentProps) => {
+  if (error instanceof ForbiddenError) {
+    return <Forbidden />
+  }
+
   return (
     <div
       className="flex min-h-screen items-center justify-center flex-col p-4"
