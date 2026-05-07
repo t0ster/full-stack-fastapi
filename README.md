@@ -24,6 +24,8 @@ Start the full local stack:
 docker compose watch
 ```
 
+Note: the Compose frontend is a static Nginx build, not the Vite dev server. Use the frontend-local Bun flow below for live reload.
+
 Useful URLs:
 
 - Frontend: <http://localhost:5173>
@@ -33,7 +35,7 @@ Useful URLs:
 
 On startup, `backend/scripts/prestart.sh` runs `alembic upgrade head`, then `backend/app/initial_data.py`. Seed creation is idempotent: existing admin/manager/member users are not overwritten.
 
-Alternative frontend-local flow:
+Frontend-local flow with Vite live reload:
 
 ```bash
 docker compose up -d --wait backend
