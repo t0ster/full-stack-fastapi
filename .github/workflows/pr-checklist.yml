@@ -10,19 +10,19 @@ on:
       - synchronize
       - ready_for_review
 
-# A ChatGPT-managed auth file may rotate during a run. Keep all users of the
-# shared file serialized so that a later job never restores stale credentials.
-concurrency:
-  group: codex-pro-auth-${{ github.repository }}
-  cancel-in-progress: false
-
 jobs:
   analyze:
     name: Run PR checklist
     if: >-
+      always() &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]' &&
       github.event.pull_request.draft == false
+    # Serialize users of the rotating auth file. Superseded analysis stops,
+    # but its job stays alive long enough to persist credentials.
+    concurrency:
+      group: codex-pro-auth-${{ github.repository }}
+      cancel-in-progress: true
     environment: codex-auth
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -102,6 +102,7 @@ jobs:
           grep -Fx '# 📋 PR Checklist self-check' "$SELF_CHECK_REPORT"
 
       - name: Restore Codex authentication
+        id: restore-auth
         shell: bash
         env:
           CODEX_HOME: ${{ runner.temp }}/codex-home
@@ -122,6 +123,7 @@ jobs:
           ' "$CODEX_HOME/auth.json" >/dev/null
 
       - name: Run PR checklist
+        if: ${{ success() && !cancelled() }}
         shell: bash
         env:
           CODEX_HOME: ${{ runner.temp }}/codex-home
@@ -177,7 +179,9 @@ jobs:
           retention-days: 1
 
       - name: Persist Codex authentication
-        if: always()
+        if: >-
+          always() &&
+          steps.restore-auth.outcome == 'success'
         shell: bash
         env:
           CODEX_HOME: ${{ runner.temp }}/codex-home
