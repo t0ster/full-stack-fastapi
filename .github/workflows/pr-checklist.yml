@@ -132,7 +132,6 @@ jobs:
           npm_config_cache: /tmp/pr-checklist-npm-cache
           npm_config_offline: "true"
           GENERATED_REPORT_PATH: /tmp/pr-checklist-${{ github.run_id }}-${{ github.run_attempt }}.md
-          LAST_MESSAGE_PATH: ${{ runner.temp }}/codex-last-message.txt
           REPORT_PATH: ${{ runner.temp }}/codex-report.md
         run: |
           cd "$GITHUB_WORKSPACE/target"
@@ -159,7 +158,6 @@ jobs:
             --config 'web_search="disabled"' \
             --config 'model_reasoning_effort="max"' \
             --color never \
-            --output-last-message "$LAST_MESSAGE_PATH" \
             "\$pr-checklist pr $PR_NUMBER. Write the rendered Markdown report to exactly $GENERATED_REPORT_PATH. Do not post the report or modify tracked files. Finish only after that report exists."
 
           test -s "$GENERATED_REPORT_PATH"
@@ -247,10 +245,7 @@ jobs:
               "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
               --jq '.[] |
                 select(.user.login == "github-actions[bot]") |
-                select(
-                  (.body | startswith("<!-- codex-pr-checklist -->")) or
-                  (.body | startswith("<!-- codex-hello-world -->"))
-                ) |
+                select(.body | startswith("<!-- codex-pr-checklist -->")) |
                 .id' |
               tail -n 1
           )"
