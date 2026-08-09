@@ -144,17 +144,16 @@ jobs:
         shell: bash
         env:
           CODEX_HOME: ${{ runner.temp }}/codex-home
+          CODEX_OUTPUT_PATH: ${{ runner.temp }}/codex-output.log
           DENO_DIR: /tmp/pr-checklist-deno-cache
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          TMPDIR: /tmp/pr-checklist-${{ github.run_id }}-${{ github.run_attempt }}
+          TMPDIR: /tmp
           npm_config_cache: /tmp/pr-checklist-npm-cache
           npm_config_offline: "true"
           REPORT_PATH: ${{ runner.temp }}/codex-report.md
         run: |
           cd "$GITHUB_WORKSPACE/target"
           REVIEW_HEAD="$(git rev-parse HEAD)"
-          install -d -m 700 "$TMPDIR"
 
           codex exec \
             --ignore-user-config \
@@ -173,19 +172,20 @@ jobs:
             --config "permissions.pr_checklist.filesystem={\"$CODEX_HOME\"=\"deny\"}" \
             --config 'shell_environment_policy.inherit="all"' \
             --config 'shell_environment_policy.ignore_default_excludes=true' \
-            --config 'shell_environment_policy.include_only=["PATH","HOME","USER","SHELL","LANG","LC_*","CI","TMPDIR","GH_TOKEN","GITHUB_REPOSITORY","PR_NUMBER","DENO_DIR","npm_config_*"]' \
+            --config 'shell_environment_policy.include_only=["PATH","HOME","USER","SHELL","LANG","LC_*","CI","TMPDIR","GH_TOKEN","GITHUB_REPOSITORY","DENO_DIR","npm_config_*"]' \
             --config 'web_search="disabled"' \
             --config 'model_reasoning_effort="max"' \
             --color never \
-            "\$pr-checklist current pr"
+            "\$pr-checklist current pr" \
+            2>&1 |
+            tee "$CODEX_OUTPUT_PATH"
 
-          shopt -s nullglob
-          GENERATED_REPORTS=("$TMPDIR"/pr-checklist.*/pr-checklist.md)
-          if (( ${#GENERATED_REPORTS[@]} != 1 )); then
-            echo "::error::Expected exactly one rendered PR checklist report."
-            exit 1
-          fi
-          GENERATED_REPORT_PATH="${GENERATED_REPORTS[0]}"
+          GENERATED_REPORT_PATH="$(
+            sed -n \
+              's#^<pr_checklist>\(/tmp/pr-checklist\.[^<]*/pr-checklist\.md\)</pr_checklist>$#\1#p' \
+              "$CODEX_OUTPUT_PATH" |
+              tail -n 1
+          )"
           test -s "$GENERATED_REPORT_PATH"
           head -n 1 "$GENERATED_REPORT_PATH" |
             grep -Fx '# 📋 PR Checklist'
