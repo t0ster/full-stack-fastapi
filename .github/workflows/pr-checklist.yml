@@ -1,4 +1,4 @@
-name: Codex Hello World
+name: Codex PR Checklist
 
 on:
   pull_request:
@@ -18,14 +18,14 @@ concurrency:
 
 jobs:
   analyze:
-    name: Run Codex
+    name: Run PR checklist
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.actor != 'dependabot[bot]' &&
       github.event.pull_request.draft == false
     environment: codex-auth
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     permissions:
       contents: read
       pull-requests: read
@@ -35,6 +35,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          path: target
           persist-credentials: false
 
       - name: Set up Node.js
@@ -47,6 +48,36 @@ jobs:
         run: |
           npm install --global @openai/codex@0.147.0
           codex --version
+
+      - name: Install and verify PR checklist skill
+        shell: bash
+        env:
+          DENO_DIR: /tmp/pr-checklist-deno-cache
+          npm_config_cache: /tmp/pr-checklist-npm-cache
+        run: |
+          SKILL_DEST="$HOME/.agents/skills/pr-checklist"
+          SELF_CHECK_REPORT="$RUNNER_TEMP/pr-checklist-self-check.md"
+
+          npx --yes skills@1.5.22 add \
+            't0ster/pr-checklist@v0.1.0' \
+            --skill pr-checklist \
+            --agent codex \
+            --global \
+            --yes \
+            --copy
+
+          jq --exit-status '
+            .skills["pr-checklist"].source == "t0ster/pr-checklist" and
+            .skills["pr-checklist"].skillFolderHash ==
+              "c9f81a2eb26beabda0ab65e884c9ee3bd6ca91e2"
+          ' "$HOME/.agents/.skill-lock.json" >/dev/null
+          test -f "$SKILL_DEST/SKILL.md"
+
+          cd "$SKILL_DEST"
+          printf '{}' |
+            npx --yes deno@2.5.4 run --allow-read=. scripts/self-check.ts \
+              > "$SELF_CHECK_REPORT"
+          grep -Fx '# 📋 PR Checklist self-check' "$SELF_CHECK_REPORT"
 
       - name: Restore Codex authentication
         shell: bash
@@ -68,23 +99,54 @@ jobs:
             (((.tokens.refresh_token // "") | length) > 0)
           ' "$CODEX_HOME/auth.json" >/dev/null
 
-      - name: Run hello-world prompt
+      - name: Run PR checklist
         shell: bash
         env:
           CODEX_HOME: ${{ runner.temp }}/codex-home
+          DENO_DIR: /tmp/pr-checklist-deno-cache
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TMPDIR: /tmp
+          npm_config_cache: /tmp/pr-checklist-npm-cache
+          npm_config_offline: "true"
+          GENERATED_REPORT_PATH: /tmp/pr-checklist-${{ github.run_id }}-${{ github.run_attempt }}.md
+          LAST_MESSAGE_PATH: ${{ runner.temp }}/codex-last-message.txt
           REPORT_PATH: ${{ runner.temp }}/codex-report.md
         run: |
+          cd "$GITHUB_WORKSPACE/target"
+          REVIEW_HEAD="$(git rev-parse HEAD)"
+
           codex exec \
             --ignore-user-config \
+            --ignore-rules \
             --ephemeral \
-            --sandbox read-only \
+            --strict-config \
+            --disable apps \
+            --disable hooks \
+            --disable remote_plugin \
+            --enable network_proxy \
+            --config 'approval_policy="never"' \
+            --config 'default_permissions="pr_checklist"' \
+            --config 'permissions.pr_checklist.extends=":workspace"' \
+            --config 'permissions.pr_checklist.network.enabled=true' \
+            --config 'permissions.pr_checklist.network.domains={"api.github.com"="allow"}' \
+            --config "permissions.pr_checklist.filesystem={\"$CODEX_HOME\"=\"deny\"}" \
+            --config 'shell_environment_policy.inherit="all"' \
+            --config 'shell_environment_policy.ignore_default_excludes=true' \
+            --config 'shell_environment_policy.include_only=["PATH","HOME","USER","SHELL","LANG","LC_*","CI","TMPDIR","GH_TOKEN","GITHUB_REPOSITORY","DENO_DIR","npm_config_*"]' \
+            --config 'web_search="disabled"' \
             --config 'model_reasoning_effort="max"' \
             --color never \
-            --output-last-message "$REPORT_PATH" \
-            'Do not use tools. Your complete response must be exactly: Hello, world!'
+            --output-last-message "$LAST_MESSAGE_PATH" \
+            "\$pr-checklist pr $PR_NUMBER. Write the rendered Markdown report to exactly $GENERATED_REPORT_PATH. Do not post the report or modify tracked files. Finish only after that report exists."
 
-          grep -Fx 'Hello, world!' "$REPORT_PATH"
+          test -s "$GENERATED_REPORT_PATH"
+          head -n 1 "$GENERATED_REPORT_PATH" |
+            grep -Fx '# 📋 PR Checklist'
+          test "$(git rev-parse HEAD)" = "$REVIEW_HEAD"
+          git diff --quiet
+          git diff --cached --quiet
+          install -m 600 "$GENERATED_REPORT_PATH" "$REPORT_PATH"
 
       - name: Upload comment
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
@@ -153,7 +215,7 @@ jobs:
           PAYLOAD_PATH="$RUNNER_TEMP/codex-comment.json"
 
           {
-            printf '<!-- codex-hello-world -->\n\n'
+            printf '<!-- codex-pr-checklist -->\n\n'
             cat "$REPORT_PATH"
           } > "$COMMENT_PATH"
           jq --raw-input --slurp '{body: .}' "$COMMENT_PATH" > "$PAYLOAD_PATH"
@@ -163,7 +225,10 @@ jobs:
               "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
               --jq '.[] |
                 select(.user.login == "github-actions[bot]") |
-                select(.body | startswith("<!-- codex-hello-world -->")) |
+                select(
+                  (.body | startswith("<!-- codex-pr-checklist -->")) or
+                  (.body | startswith("<!-- codex-hello-world -->"))
+                ) |
                 .id' |
               tail -n 1
           )"
