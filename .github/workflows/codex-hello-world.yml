@@ -45,7 +45,7 @@ jobs:
       - name: Install Codex CLI
         shell: bash
         run: |
-          npm install --global @openai/codex@0.143.0
+          npm install --global @openai/codex@0.147.0
           codex --version
 
       - name: Restore Codex authentication
@@ -79,6 +79,7 @@ jobs:
             --ignore-user-config \
             --ephemeral \
             --sandbox read-only \
+            --config 'model_reasoning_effort="max"' \
             --color never \
             --output-last-message "$REPORT_PATH" \
             'Do not use tools. Your complete response must be exactly: Hello, world!'
