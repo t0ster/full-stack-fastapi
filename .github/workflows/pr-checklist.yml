@@ -154,7 +154,7 @@ jobs:
             --config 'default_permissions="pr_checklist"' \
             --config 'permissions.pr_checklist.extends=":workspace"' \
             --config 'permissions.pr_checklist.network.enabled=true' \
-            --config 'permissions.pr_checklist.network.domains={"api.github.com"="allow"}' \
+            --config 'permissions.pr_checklist.network.domains={"api.github.com"="allow","zenquotes.io"="allow"}' \
             --config "permissions.pr_checklist.filesystem={\"$CODEX_HOME\"=\"deny\"}" \
             --config 'shell_environment_policy.inherit="all"' \
             --config 'shell_environment_policy.ignore_default_excludes=true' \
@@ -162,7 +162,7 @@ jobs:
             --config 'web_search="disabled"' \
             --config 'model_reasoning_effort="max"' \
             --color never \
-            "\$pr-checklist pr $PR_NUMBER. Write the rendered Markdown report to exactly $GENERATED_REPORT_PATH. ZenQuotes is intentionally unavailable; render without network permission. Do not post the report or modify tracked files. Finish only after that report exists."
+            "\$pr-checklist pr $PR_NUMBER. Write the rendered Markdown report to exactly $GENERATED_REPORT_PATH. Do not post the report or modify tracked files. Finish only after that report exists."
 
           test -s "$GENERATED_REPORT_PATH"
           head -n 1 "$GENERATED_REPORT_PATH" |
