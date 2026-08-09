@@ -258,7 +258,7 @@ jobs:
           name: codex-pr-comment
           path: ${{ runner.temp }}/codex-pr-comment
 
-      - name: Create or update PR comment
+      - name: Create PR comment
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -283,24 +283,7 @@ jobs:
           } > "$COMMENT_PATH"
           jq --raw-input --slurp '{body: .}' "$COMMENT_PATH" > "$PAYLOAD_PATH"
 
-          COMMENT_ID="$(
-            gh api --paginate \
-              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
-              --jq '.[] |
-                select(.user.login == "github-actions[bot]") |
-                select(.body | startswith("<!-- codex-pr-checklist -->")) |
-                .id' |
-              tail -n 1
-          )"
-
-          if [[ -n "$COMMENT_ID" ]]; then
-            gh api --method PATCH \
-              "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID" \
-              --input "$PAYLOAD_PATH" \
-              >/dev/null
-          else
-            gh api --method POST \
-              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-              --input "$PAYLOAD_PATH" \
-              >/dev/null
-          fi
+          gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --input "$PAYLOAD_PATH" \
+            >/dev/null
