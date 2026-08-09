@@ -1,0 +1,180 @@
+name: Codex Hello World
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+# A ChatGPT-managed auth file may rotate during a run. Keep all users of the
+# shared file serialized so that a later job never restores stale credentials.
+concurrency:
+  group: codex-pro-auth-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    name: Run Codex
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.draft == false
+    environment: codex-auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+
+      - name: Install Codex CLI
+        shell: bash
+        run: |
+          npm install --global @openai/codex@0.143.0
+          codex --version
+
+      - name: Restore Codex authentication
+        shell: bash
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex-home
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          if [[ -z "${CODEX_AUTH_JSON:-}" ]]; then
+            echo "::error::The codex-auth environment is missing CODEX_AUTH_JSON."
+            exit 1
+          fi
+
+          install -d -m 700 "$CODEX_HOME"
+          umask 077
+          printf '%s' "$CODEX_AUTH_JSON" > "$CODEX_HOME/auth.json"
+
+          jq -e '
+            .auth_mode == "chatgpt" and
+            (((.tokens.refresh_token // "") | length) > 0)
+          ' "$CODEX_HOME/auth.json" >/dev/null
+
+      - name: Run hello-world prompt
+        shell: bash
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex-home
+          GH_TOKEN: ${{ github.token }}
+          REPORT_PATH: ${{ runner.temp }}/codex-report.md
+        run: |
+          codex exec \
+            --ignore-user-config \
+            --ephemeral \
+            --sandbox read-only \
+            --color never \
+            --output-last-message "$REPORT_PATH" \
+            'Do not use tools. Your complete response must be exactly: Hello, world!'
+
+          grep -Fx 'Hello, world!' "$REPORT_PATH"
+
+      - name: Upload comment
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: codex-pr-comment
+          path: ${{ runner.temp }}/codex-report.md
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Persist Codex authentication
+        if: always()
+        shell: bash
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex-home
+          GH_TOKEN: ${{ secrets.CODEX_AUTH_WRITER_PAT }}
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::The codex-auth environment is missing CODEX_AUTH_WRITER_PAT."
+            exit 1
+          fi
+
+          jq -e '
+            .auth_mode == "chatgpt" and
+            (((.tokens.refresh_token // "") | length) > 0)
+          ' "$CODEX_HOME/auth.json" >/dev/null
+
+          for delay in 0 2 5; do
+            sleep "$delay"
+            if gh secret set CODEX_AUTH_JSON \
+              --repo "$GITHUB_REPOSITORY" \
+              --env codex-auth \
+              < "$CODEX_HOME/auth.json"; then
+              exit 0
+            fi
+          done
+
+          echo "::error::Failed to persist refreshed Codex authentication."
+          exit 1
+
+  comment:
+    name: Post PR comment
+    needs:
+      - analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      pull-requests: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Download comment
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: codex-pr-comment
+          path: ${{ runner.temp }}/codex-pr-comment
+
+      - name: Create or update PR comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_PATH: ${{ runner.temp }}/codex-pr-comment/codex-report.md
+        run: |
+          COMMENT_PATH="$RUNNER_TEMP/codex-comment.md"
+          PAYLOAD_PATH="$RUNNER_TEMP/codex-comment.json"
+
+          {
+            printf '<!-- codex-hello-world -->\n\n'
+            cat "$REPORT_PATH"
+          } > "$COMMENT_PATH"
+          jq --raw-input --slurp '{body: .}' "$COMMENT_PATH" > "$PAYLOAD_PATH"
+
+          COMMENT_ID="$(
+            gh api --paginate \
+              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments?per_page=100" \
+              --jq '.[] |
+                select(.user.login == "github-actions[bot]") |
+                select(.body | startswith("<!-- codex-hello-world -->")) |
+                .id' |
+              tail -n 1
+          )"
+
+          if [[ -n "$COMMENT_ID" ]]; then
+            gh api --method PATCH \
+              "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID" \
+              --input "$PAYLOAD_PATH" \
+              >/dev/null
+          else
+            gh api --method POST \
+              "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              --input "$PAYLOAD_PATH" \
+              >/dev/null
+          fi
