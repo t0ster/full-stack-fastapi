@@ -36,9 +36,24 @@ jobs:
       - name: Checkout PR
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           path: target
           persist-credentials: false
+
+      - name: Prepare PR branches
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd "$GITHUB_WORKSPACE/target"
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git branch "$BASE_REF" "$BASE_SHA"
+          git switch --create "$HEAD_REF" "$HEAD_SHA"
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -132,14 +147,14 @@ jobs:
           DENO_DIR: /tmp/pr-checklist-deno-cache
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          TMPDIR: /tmp
+          TMPDIR: /tmp/pr-checklist-${{ github.run_id }}-${{ github.run_attempt }}
           npm_config_cache: /tmp/pr-checklist-npm-cache
           npm_config_offline: "true"
-          GENERATED_REPORT_PATH: /tmp/pr-checklist-${{ github.run_id }}-${{ github.run_attempt }}.md
           REPORT_PATH: ${{ runner.temp }}/codex-report.md
         run: |
           cd "$GITHUB_WORKSPACE/target"
           REVIEW_HEAD="$(git rev-parse HEAD)"
+          install -d -m 700 "$TMPDIR"
 
           codex exec \
             --ignore-user-config \
@@ -158,12 +173,19 @@ jobs:
             --config "permissions.pr_checklist.filesystem={\"$CODEX_HOME\"=\"deny\"}" \
             --config 'shell_environment_policy.inherit="all"' \
             --config 'shell_environment_policy.ignore_default_excludes=true' \
-            --config 'shell_environment_policy.include_only=["PATH","HOME","USER","SHELL","LANG","LC_*","CI","TMPDIR","GH_TOKEN","GITHUB_REPOSITORY","DENO_DIR","npm_config_*"]' \
+            --config 'shell_environment_policy.include_only=["PATH","HOME","USER","SHELL","LANG","LC_*","CI","TMPDIR","GH_TOKEN","GITHUB_REPOSITORY","PR_NUMBER","DENO_DIR","npm_config_*"]' \
             --config 'web_search="disabled"' \
             --config 'model_reasoning_effort="max"' \
             --color never \
-            "\$pr-checklist pr $PR_NUMBER. Write the rendered Markdown report to exactly $GENERATED_REPORT_PATH. Do not post the report or modify tracked files. Finish only after that report exists."
+            "\$pr-checklist current pr"
 
+          shopt -s nullglob
+          GENERATED_REPORTS=("$TMPDIR"/pr-checklist.*/pr-checklist.md)
+          if (( ${#GENERATED_REPORTS[@]} != 1 )); then
+            echo "::error::Expected exactly one rendered PR checklist report."
+            exit 1
+          fi
+          GENERATED_REPORT_PATH="${GENERATED_REPORTS[0]}"
           test -s "$GENERATED_REPORT_PATH"
           head -n 1 "$GENERATED_REPORT_PATH" |
             grep -Fx '# 📋 PR Checklist'
